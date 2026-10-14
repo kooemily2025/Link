@@ -1,85 +1,140 @@
 
+import { auth, db, googleProvider } from "./firebase.js";
+
 import {
-  auth,
-  googleProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   onAuthStateChanged,
   signOut
-} from "./firebase.js";
+} from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
-// HTML 요소
-const googleLoginBtn = document.getElementById("google-login-btn");
-const logoutBtn = document.getElementById("logout-btn");
-const userName = document.getElementById("user-name");
-const chatContainer = document.getElementById("chat-container");
+import {
+  doc,
+  setDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 
-// Google 로그인
-if (googleLoginBtn) {
-  googleLoginBtn.addEventListener("click", async () => {
-    googleLoginBtn.disabled = true;
+import { initFriends } from "./friends.js";
+import { initRoom } from "./room.js";
 
-    try {
-      await signInWithPopup(auth, googleProvider);
-      console.log("Google 로그인 성공");
-    } catch (error) {
-      console.error("Google 로그인 오류:", error);
+const loginScreen = document.getElementById("login-screen");
+const appScreen = document.getElementById("app-screen");
+const loginButton = document.getElementById("google-login-btn");
+const logoutButton = document.getElementById("logout-btn");
+const loginError = document.getElementById("login-error");
 
-      alert(
-        error.code === "auth/unauthorized-domain"
-          ? "로그인 도메인이 Firebase에 등록되어 있지 않습니다."
-          : error.code === "auth/popup-blocked"
-          ? "팝업이 차단되었습니다. 브라우저의 팝업 설정을 확인해 주세요."
-          : "로그인에 실패했습니다: " + error.message
-      );
-    } finally {
-      googleLoginBtn.disabled = false;
-    }
-  });
+let currentUid = null;
+let friendsController = null;
+let roomController = null;
+
+function explainError(error) {
+  const messages = {
+    "auth/unauthorized-domain":
+      "Firebase Authentication의 승인된 도메인을 확인해 주세요.",
+    "auth/popup-closed-by-user":
+      "로그인 창이 닫혔어요. 다시 시도해 주세요.",
+    "auth/popup-blocked":
+      "로그인 팝업이 차단됐어요.",
+    "auth/network-request-failed":
+      "인터넷 연결을 확인해 주세요.",
+    "auth/operation-not-allowed":
+      "Firebase에서 Google 로그인을 활성화해 주세요.",
+    "permission-denied":
+      "Firestore 보안 규칙에서 요청이 거부됐어요."
+  };
+
+  return messages[error.code] ||
+    `오류가 발생했어요: ${error.code || error.message}`;
 }
 
-// 로그인 상태 감지
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    // 로그인 상태
-    if (googleLoginBtn) {
-      googleLoginBtn.style.display = "none";
-    }
+function closeSession() {
+  friendsController?.destroy();
+  roomController?.destroy();
 
-    if (chatContainer) {
-      chatContainer.style.display = "block";
-    }
+  friendsController = null;
+  roomController = null;
+  currentUid = null;
+}
 
-    if (userName) {
-      userName.textContent =
-        user.displayName || user.email || "사용자";
-    }
+loginButton.addEventListener("click", async () => {
+  loginButton.disabled = true;
+  loginError.textContent = "";
 
-    console.log("현재 로그인 사용자:", user.uid);
-  } else {
-    // 로그아웃 상태
-    if (googleLoginBtn) {
-      googleLoginBtn.style.display = "block";
-    }
-
-    if (chatContainer) {
-      chatContainer.style.display = "none";
-    }
-
-    if (userName) {
-      userName.textContent = "";
+  try {
+    await signInWithPopup(auth, googleProvider);
+  } catch (error) {
+    if (error.code === "auth/popup-blocked") {
+      try {
+        await signInWithRedirect(auth, googleProvider);
+      } catch (redirectError) {
+        loginError.textContent = explainError(redirectError);
+        loginButton.disabled = false;
+      }
+    } else {
+      loginError.textContent = explainError(error);
+      loginButton.disabled = false;
     }
   }
 });
 
-// 로그아웃
-if (logoutBtn) {
-  logoutBtn.addEventListener("click", async () => {
-    try {
-      await signOut(auth);
-      console.log("로그아웃 성공");
-    } catch (error) {
-      console.error("로그아웃 오류:", error);
-      alert("로그아웃에 실패했습니다: " + error.message);
-    }
-  });
-}
+logoutButton.addEventListener("click", async () => {
+  logoutButton.disabled = true;
+
+  try {
+    await signOut(auth);
+  } catch (error) {
+    alert(explainError(error));
+  } finally {
+    logoutButton.disabled = false;
+  }
+});
+
+getRedirectResult(auth).catch((error) => {
+  loginError.textContent = explainError(error);
+});
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    closeSession();
+    loginScreen.classList.remove("hidden");
+    appScreen.classList.add("hidden");
+    loginButton.disabled = false;
+    return;
+  }
+
+  if (currentUid === user.uid) return;
+
+  closeSession();
+  currentUid = user.uid;
+
+  loginScreen.classList.add("hidden");
+  appScreen.classList.remove("hidden");
+
+  document.getElementById("user-name").textContent =
+    user.displayName || user.email || "사용자";
+
+  document.getElementById("user-photo").src =
+    user.photoURL || "https://placehold.co/80x80?text=L";
+
+  try {
+    await setDoc(doc(db, "users", user.uid), {
+      uid: user.uid,
+      displayName: user.displayName || "사용자",
+      email: (user.email || "").toLowerCase(),
+      photoURL: user.photoURL || "",
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+
+    if (auth.currentUser?.uid !== user.uid) return;
+
+    roomController = initRoom(user);
+
+    friendsController = initFriends(user, (friend) => {
+      roomController?.openRoom(friend);
+    });
+  } catch (error) {
+    console.error("앱 초기화 실패:", error);
+    alert(explainError(error));
+  }
+});
