@@ -1,0 +1,141 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f7f7fb">
+  <title>LinkUp - Messenger</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="login-screen" class="login-screen">
+    <div class="login-card">
+      <div class="logo">L</div>
+      <h1>LinkUp</h1>
+      <p>친구와 연결되는 공간</p>
+      <button id="google-login" class="google-button">
+        <span>G</span> Google로 로그인
+      </button>
+      <p id="login-error" class="error"></p>
+    </div>
+  </div>
+
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <header class="brand">
+        <div class="logo small">L</div>
+        <div>
+          <h2>LinkUp</h2>
+          <p>Stay connected</p>
+        </div>
+      </header>
+
+      <div class="profile">
+        <img id="my-photo" class="avatar" alt="프로필">
+        <div class="profile-info">
+          <strong id="my-name">사용자</strong>
+          <small id="my-code">@--------</small>
+        </div>
+        <button id="logout" class="icon-button" title="로그아웃">↪</button>
+      </div>
+
+      <div class="sidebar-actions">
+        <button id="show-friends" class="nav-button active">
+          ♙ 친구
+        </button>
+        <button id="show-chats" class="nav-button">
+          ▤ 채팅
+        </button>
+      </div>
+
+      <div class="section-heading">
+        <h3 id="list-heading">친구 목록</h3>
+        <button id="add-friend-toggle" class="plus-button"
+          title="친구 추가">+</button>
+      </div>
+
+      <form id="add-friend-form" class="inline-form hidden">
+        <input id="friend-code" placeholder="친구 ID 입력"
+          maxlength="9" required>
+        <button type="submit">추가</button>
+      </form>
+
+      <div id="friend-status" class="status-text"></div>
+      <div id="friends-list" class="list"></div>
+      <div id="chats-list" class="list hidden"></div>
+
+      <button id="create-group" class="group-button">
+        + 그룹 채팅 만들기
+      </button>
+    </aside>
+
+    <main class="chat-area">
+      <div id="welcome" class="welcome">
+        <div class="welcome-icon">✦</div>
+        <h2>대화를 시작해 보세요</h2>
+        <p>친구를 선택하거나 새로운 그룹을 만들어 보세요.</p>
+      </div>
+
+      <section id="chat-panel" class="chat-panel hidden">
+        <header class="chat-header">
+          <div class="chat-person">
+            <div id="chat-avatar" class="chat-avatar">L</div>
+            <div>
+              <h3 id="chat-title">채팅</h3>
+              <p id="chat-subtitle">LinkUp 메시지</p>
+            </div>
+          </div>
+          <button id="invite-member" class="secondary-button hidden">
+            + 친구 초대
+          </button>
+        </header>
+
+        <div id="messages" class="messages"></div>
+
+        <form id="message-form" class="message-form">
+          <input id="message-input" maxlength="3000"
+            placeholder="메시지를 입력하세요..." autocomplete="off"
+            required>
+          <button type="submit">전송 ↑</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="group-dialog" class="modal">
+    <form id="group-form">
+      <h2>새 그룹 채팅</h2>
+      <label for="group-name">그룹 이름</label>
+      <input id="group-name" maxlength="40"
+        placeholder="예: 우리들의 방" required>
+
+      <p>초대할 친구를 선택하세요.</p>
+      <div id="group-friend-options" class="group-options"></div>
+
+      <div class="modal-actions">
+        <button type="button" id="cancel-group"
+          class="secondary-button">취소</button>
+        <button type="submit">그룹 만들기</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="invite-dialog" class="modal">
+    <form id="invite-form">
+      <h2>친구 초대</h2>
+      <p>현재 그룹에 추가할 친구를 선택하세요.</p>
+      <div id="invite-friend-options" class="group-options"></div>
+      <div class="modal-actions">
+        <button type="button" id="cancel-invite"
+          class="secondary-button">취소</button>
+        <button type="submit">초대하기</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
