@@ -4,31 +4,17 @@ import { initializeApp } from
 
 import {
   getAuth,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
-  onAuthStateChanged,
-  signOut
+  GoogleAuthProvider
 } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
 import {
-  getFirestore,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  addDoc,
-  updateDoc,
-  query,
-  where,
-  orderBy,
-  limit,
-  onSnapshot,
-  serverTimestamp,
-  runTransaction
+  getFirestore
 } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+
+import {
+  getAnalytics,
+  isSupported
+} from "https://www.gstatic.com/firebasejs/12.5.0/firebase-analytics.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDNl0hgy7PyHgYCSZgYv-j1V23rQ9wUTFY",
@@ -41,31 +27,22 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const googleProvider = new GoogleAuthProvider();
 
-export {
-  auth,
-  db,
-  googleProvider,
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
-  onAuthStateChanged,
-  signOut,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  addDoc,
-  updateDoc,
-  query,
-  where,
-  orderBy,
-  limit,
-  onSnapshot,
-  serverTimestamp,
-  runTransaction
-};
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+
+export const googleProvider = new GoogleAuthProvider();
+
+googleProvider.setCustomParameters({
+  prompt: "select_account"
+});
+
+isSupported()
+  .then((supported) => {
+    if (supported) {
+      getAnalytics(app);
+    }
+  })
+  .catch((error) => {
+    console.warn("Analytics를 사용할 수 없습니다.", error);
+  });
