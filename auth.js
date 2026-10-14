@@ -710,3 +710,22 @@ $("invite-form").addEventListener("submit", async event => {
     toast(errorMessage(error));
   }
 });
+import {
+  GoogleAuthProvider,
+  signInWithPopup
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+
+import { auth } from "./firebase.js";
+
+const loginButton = document.getElementById("google-login");
+
+loginButton?.addEventListener("click", async () => {
+  try {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+    alert("Google 로그인 성공!");
+  } catch (error) {
+    console.error("로그인 오류:", error);
+    alert("로그인 실패: " + error.message);
+  }
+});
